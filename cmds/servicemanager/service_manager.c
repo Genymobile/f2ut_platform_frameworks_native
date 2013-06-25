@@ -209,11 +209,12 @@ int do_add_service(struct binder_state *bs,
     if (!handle || (len == 0) || (len > 127))
         return -1;
 
-    if (!svc_can_register(s, len, spid, uid)) {
-        ALOGE("add_service('%s',%x) uid=%d - PERMISSION DENIED\n",
-             str8(s, len), handle, uid);
-        return -1;
-    }
+// Don't do permission checks for services in the service manager
+//    if (!svc_can_register(s, len, spid, uid)) {
+//        ALOGE("add_service('%s',%x) uid=%d - PERMISSION DENIED\n",
+//             str8(s, len), handle, uid);
+//        return -1;
+//    }
 
     si = find_svc(s, len);
     if (si) {
