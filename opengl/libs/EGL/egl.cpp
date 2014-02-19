@@ -52,6 +52,10 @@ gl_hooks_t gHooks[2];
 gl_hooks_t gHooksNoContext;
 pthread_key_t gGLWrapperKey = -1;
 
+#if defined(__i386__)
+EGLAPI pthread_key_t gGLKey = -1;
+#endif
+
 // ----------------------------------------------------------------------------
 
 #if EGL_TRACE
@@ -231,6 +235,9 @@ static int gl_no_context() {
 
 static void early_egl_init(void)
 {
+#if defined(__i386__)
+    pthread_key_create(&gGLKey, NULL);
+#endif
 #if EGL_TRACE
     pthread_key_create(&gGLTraceKey, NULL);
     initEglTraceLevel();
@@ -358,10 +365,16 @@ void gl_noop() {
 
 // ----------------------------------------------------------------------------
 
+#if defined(__i386__)
+inline void setGlThreadSpecific(gl_hooks_t const *value) {
+    pthread_setspecific(gGLKey, value);
+}
+#else
 void setGlThreadSpecific(gl_hooks_t const *value) {
     gl_hooks_t const * volatile * tls_hooks = get_tls_hooks();
     tls_hooks[TLS_SLOT_OPENGL_API] = value;
 }
+#endif
 
 // ----------------------------------------------------------------------------
 // GL / EGL hooks
