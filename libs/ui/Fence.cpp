@@ -127,7 +127,7 @@ nsecs_t Fence::getSignalTime() const {
 }
 
 size_t Fence::getFlattenedSize() const {
-    return 1;
+    return sizeof(getFdCount());
 }
 
 size_t Fence::getFdCount() const {

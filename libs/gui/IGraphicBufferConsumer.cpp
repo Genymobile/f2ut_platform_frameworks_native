@@ -53,11 +53,11 @@ size_t IGraphicBufferConsumer::BufferItem::getPodSize() const {
             sizeof(mScalingMode) +
             sizeof(mTimestamp) +
             sizeof(mIsAutoTimestamp) +
-            sizeof(mFrameNumber) +
+            FlattenableUtils::align<4>(sizeof(mFrameNumber)) +
             sizeof(mBuf) +
-            sizeof(mIsDroppable) +
-            sizeof(mAcquireCalled) +
-            sizeof(mTransformToDisplayInverse);
+            FlattenableUtils::align<4>(sizeof(mIsDroppable)) +
+            FlattenableUtils::align<4>(sizeof(mAcquireCalled)) +
+            FlattenableUtils::align<4>(sizeof(mTransformToDisplayInverse));
     return c;
 }
 
@@ -133,11 +133,15 @@ status_t IGraphicBufferConsumer::BufferItem::flatten(
     FlattenableUtils::write(buffer, size, mScalingMode);
     FlattenableUtils::write(buffer, size, mTimestamp);
     writeBoolAsInt(buffer, size, mIsAutoTimestamp);
+    size -= FlattenableUtils::align<4>(buffer);
     FlattenableUtils::write(buffer, size, mFrameNumber);
     FlattenableUtils::write(buffer, size, mBuf);
     writeBoolAsInt(buffer, size, mIsDroppable);
+    size -= FlattenableUtils::align<4>(buffer);
     writeBoolAsInt(buffer, size, mAcquireCalled);
+    size -= FlattenableUtils::align<4>(buffer);
     writeBoolAsInt(buffer, size, mTransformToDisplayInverse);
+    size -= FlattenableUtils::align<4>(buffer);
 
     return NO_ERROR;
 }
@@ -149,7 +153,7 @@ status_t IGraphicBufferConsumer::BufferItem::unflatten(
         return NO_MEMORY;
 
     uint32_t flags = 0;
-    FlattenableUtils::read(buffer, size, flags);
+    FlattenableUtils::read<uint32_t>(buffer, size, flags);
 
     if (flags & 1) {
         mGraphicBuffer = new GraphicBuffer();
@@ -175,11 +179,15 @@ status_t IGraphicBufferConsumer::BufferItem::unflatten(
     FlattenableUtils::read(buffer, size, mScalingMode);
     FlattenableUtils::read(buffer, size, mTimestamp);
     mIsAutoTimestamp = readBoolFromInt(buffer, size);
+    size -= FlattenableUtils::align<4>(buffer);
     FlattenableUtils::read(buffer, size, mFrameNumber);
     FlattenableUtils::read(buffer, size, mBuf);
     mIsDroppable = readBoolFromInt(buffer, size);
+    size -= FlattenableUtils::align<4>(buffer);
     mAcquireCalled = readBoolFromInt(buffer, size);
+    size -= FlattenableUtils::align<4>(buffer);
     mTransformToDisplayInverse = readBoolFromInt(buffer, size);
+    size -= FlattenableUtils::align<4>(buffer);
 
     return NO_ERROR;
 }
