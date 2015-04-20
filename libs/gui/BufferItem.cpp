@@ -57,50 +57,67 @@ BufferItem::operator IGraphicBufferConsumer::BufferItem() const {
     return bufferItem;
 }
 
+template <typename T>
+static void addAligned(size_t& size, T /* value */) {
+    size = FlattenableUtils::align<sizeof(T)>(size);
+    size += sizeof(T);
+}
+
 size_t BufferItem::getPodSize() const {
-    size_t c =  sizeof(mCrop) +
-            sizeof(mDirtyRect) +
-            sizeof(mTransform) +
-            sizeof(mScalingMode) +
-            sizeof(mTimestamp) +
-            sizeof(mIsAutoTimestamp) +
-            sizeof(mFrameNumber) +
-            sizeof(mSlot) +
-            sizeof(mIsDroppable) +
-            sizeof(mAcquireCalled) +
-            sizeof(mTransformToDisplayInverse);
-    return c;
+    // Must align<8> before writing these fields for this to be correct
+    size_t size = 0;
+    addAligned(size, mCrop);
+#ifdef QCOM_BSP
+    addAligned(size, mDirtyRect);
+#endif
+    addAligned(size, mTransform);
+    addAligned(size, mScalingMode);
+    addAligned(size, mTimestamp);
+    addAligned(size, mIsAutoTimestamp);
+    addAligned(size, mFrameNumber);
+    addAligned(size, mSlot);
+    addAligned(size, mIsDroppable);
+    addAligned(size, mAcquireCalled);
+    addAligned(size, mTransformToDisplayInverse);
+    return size;
 }
 
 size_t BufferItem::getFlattenedSize() const {
-    size_t c = 0;
+    size_t size = sizeof(int32_t); // Flags
     if (mGraphicBuffer != 0) {
-        c += mGraphicBuffer->getFlattenedSize();
-        FlattenableUtils::align<4>(c);
+        size += mGraphicBuffer->getFlattenedSize();
+        FlattenableUtils::align<4>(size);
     }
     if (mFence != 0) {
-        c += mFence->getFlattenedSize();
-        FlattenableUtils::align<4>(c);
+        size += mFence->getFlattenedSize();
+        FlattenableUtils::align<4>(size);
     }
-    return sizeof(int32_t) + c + getPodSize();
+    size = FlattenableUtils::align<8>(size);
+    return size + getPodSize();
 }
 
 size_t BufferItem::getFdCount() const {
-    size_t c = 0;
+    size_t count = 0;
     if (mGraphicBuffer != 0) {
-        c += mGraphicBuffer->getFdCount();
+        count += mGraphicBuffer->getFdCount();
     }
     if (mFence != 0) {
-        c += mFence->getFdCount();
+        count += mFence->getFdCount();
     }
-    return c;
+    return count;
+}
+
+template <typename T>
+static void writeAligned(void*& buffer, size_t& size, T value) {
+    size -= FlattenableUtils::align<alignof(T)>(buffer);
+    FlattenableUtils::write(buffer, size, value);
 }
 
 status_t BufferItem::flatten(
         void*& buffer, size_t& size, int*& fds, size_t& count) const {
 
     // make sure we have enough space
-    if (count < BufferItem::getFlattenedSize()) {
+    if (size < BufferItem::getFlattenedSize()) {
         return NO_MEMORY;
     }
 
@@ -124,31 +141,43 @@ status_t BufferItem::flatten(
         flags |= 2;
     }
 
-    // check we have enough space (in case flattening the fence/graphicbuffer lied to us)
+    // Must align<8> so that getPodSize returns the correct value
+    size -= FlattenableUtils::align<8>(buffer);
+
+    // Check we still have enough space
     if (size < getPodSize()) {
         return NO_MEMORY;
     }
 
-    FlattenableUtils::write(buffer, size, mCrop);
-    FlattenableUtils::write(buffer, size, mDirtyRect);
-    FlattenableUtils::write(buffer, size, mTransform);
-    FlattenableUtils::write(buffer, size, mScalingMode);
-    FlattenableUtils::write(buffer, size, mTimestamp);
-    FlattenableUtils::write(buffer, size, mIsAutoTimestamp);
-    FlattenableUtils::write(buffer, size, mFrameNumber);
-    FlattenableUtils::write(buffer, size, mSlot);
-    FlattenableUtils::write(buffer, size, mIsDroppable);
-    FlattenableUtils::write(buffer, size, mAcquireCalled);
-    FlattenableUtils::write(buffer, size, mTransformToDisplayInverse);
+    writeAligned(buffer, size, mCrop);
+#ifdef QCOM_BSP
+    writeAligned(buffer, size, mDirtyRect);
+#endif
+    writeAligned(buffer, size, mTransform);
+    writeAligned(buffer, size, mScalingMode);
+    writeAligned(buffer, size, mTimestamp);
+    writeAligned(buffer, size, mIsAutoTimestamp);
+    writeAligned(buffer, size, mFrameNumber);
+    writeAligned(buffer, size, mSlot);
+    writeAligned(buffer, size, mIsDroppable);
+    writeAligned(buffer, size, mAcquireCalled);
+    writeAligned(buffer, size, mTransformToDisplayInverse);
 
     return NO_ERROR;
+}
+
+template <typename T>
+static void readAligned(const void*& buffer, size_t& size, T& value) {
+    size -= FlattenableUtils::align<alignof(T)>(buffer);
+    FlattenableUtils::read(buffer, size, value);
 }
 
 status_t BufferItem::unflatten(
         void const*& buffer, size_t& size, int const*& fds, size_t& count) {
 
-    if (size < sizeof(uint32_t))
+    if (size < sizeof(uint32_t)) {
         return NO_MEMORY;
+    }
 
     uint32_t flags = 0;
     FlattenableUtils::read(buffer, size, flags);
@@ -167,22 +196,27 @@ status_t BufferItem::unflatten(
         size -= FlattenableUtils::align<4>(buffer);
     }
 
-    // check we have enough space
+    // Must align<8> so that getPodSize returns the correct value
+    size -= FlattenableUtils::align<8>(buffer);
+
+    // Check we still have enough space
     if (size < getPodSize()) {
         return NO_MEMORY;
     }
 
-    FlattenableUtils::read(buffer, size, mCrop);
-    FlattenableUtils::read(buffer, size, mDirtyRect);
-    FlattenableUtils::read(buffer, size, mTransform);
-    FlattenableUtils::read(buffer, size, mScalingMode);
-    FlattenableUtils::read(buffer, size, mTimestamp);
-    FlattenableUtils::read(buffer, size, mIsAutoTimestamp);
-    FlattenableUtils::read(buffer, size, mFrameNumber);
-    FlattenableUtils::read(buffer, size, mSlot);
-    FlattenableUtils::read(buffer, size, mIsDroppable);
-    FlattenableUtils::read(buffer, size, mAcquireCalled);
-    FlattenableUtils::read(buffer, size, mTransformToDisplayInverse);
+    readAligned(buffer, size, mCrop);
+#ifdef QCOM_BSP
+    readAligned(buffer, size, mDirtyRect);
+#endif
+    readAligned(buffer, size, mTransform);
+    readAligned(buffer, size, mScalingMode);
+    readAligned(buffer, size, mTimestamp);
+    readAligned(buffer, size, mIsAutoTimestamp);
+    readAligned(buffer, size, mFrameNumber);
+    readAligned(buffer, size, mSlot);
+    readAligned(buffer, size, mIsDroppable);
+    readAligned(buffer, size, mAcquireCalled);
+    readAligned(buffer, size, mTransformToDisplayInverse);
 
     return NO_ERROR;
 }
