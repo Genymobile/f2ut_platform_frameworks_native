@@ -783,23 +783,24 @@ bool InputDispatcher::dispatchKeyLocked(nsecs_t currentTime, KeyEntry* entry,
     }
 
     // Identify targets.
+    bool result = true;
     Vector<InputTarget> inputTargets;
     int32_t injectionResult = findFocusedWindowTargetsLocked(currentTime,
             entry, inputTargets, nextWakeupTime);
     if (injectionResult == INPUT_EVENT_INJECTION_PENDING) {
-        return false;
+        result = false;
     }
 
     setInjectionResultLocked(entry, injectionResult);
     if (injectionResult != INPUT_EVENT_INJECTION_SUCCEEDED) {
-        return true;
+        result = true;
     }
 
     addMonitoringTargetsLocked(inputTargets);
 
     // Dispatch the key.
     dispatchEventLocked(currentTime, entry, inputTargets);
-    return true;
+    return result;
 }
 
 void InputDispatcher::logOutboundKeyDetailsLocked(const char* prefix, const KeyEntry* entry) {
@@ -835,6 +836,7 @@ bool InputDispatcher::dispatchMotionLocked(
     // Identify targets.
     Vector<InputTarget> inputTargets;
 
+    bool result = true;
     bool conflictingPointerActions = false;
     int32_t injectionResult;
     if (isPointerEvent) {
@@ -847,12 +849,12 @@ bool InputDispatcher::dispatchMotionLocked(
                 entry, inputTargets, nextWakeupTime);
     }
     if (injectionResult == INPUT_EVENT_INJECTION_PENDING) {
-        return false;
+        result = false;
     }
 
     setInjectionResultLocked(entry, injectionResult);
     if (injectionResult != INPUT_EVENT_INJECTION_SUCCEEDED) {
-        return true;
+        result = true;
     }
 
     // TODO: support sending secondary display events to input monitors
@@ -867,7 +869,7 @@ bool InputDispatcher::dispatchMotionLocked(
         synthesizeCancelationEventsForAllConnectionsLocked(options);
     }
     dispatchEventLocked(currentTime, entry, inputTargets);
-    return true;
+    return result;
 }
 
 
