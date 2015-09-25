@@ -115,32 +115,32 @@ include $(BUILD_SHARED_LIBRARY)
 
 ###############################################################
 # build surfaceflinger's executable
-include $(CLEAR_VARS)
-
-LOCAL_LDFLAGS := -Wl,--version-script,art/sigchainlib/version-script.txt -Wl,--export-dynamic
-LOCAL_CFLAGS:= -DLOG_TAG=\"SurfaceFlinger\"
-LOCAL_CPPFLAGS:= -std=c++11
-
-LOCAL_SRC_FILES:= \
-	main_surfaceflinger.cpp
-
-LOCAL_SHARED_LIBRARIES := \
-	libsurfaceflinger \
-	libcutils \
-	liblog \
-	libbinder \
-	libutils \
-	libdl
-
-LOCAL_WHOLE_STATIC_LIBRARIES := libsigchain
-
-LOCAL_MODULE:= surfaceflinger
-
-ifdef TARGET_32_BIT_SURFACEFLINGER
-LOCAL_32_BIT_ONLY := true
-endif
-
-include $(BUILD_EXECUTABLE)
+# include $(CLEAR_VARS)
+#
+# LOCAL_LDFLAGS := -Wl,--version-script,art/sigchainlib/version-script.txt -Wl,--export-dynamic
+# LOCAL_CFLAGS:= -DLOG_TAG=\"SurfaceFlinger\"
+# LOCAL_CPPFLAGS:= -std=c++11
+#
+# LOCAL_SRC_FILES:= \
+# 	main_surfaceflinger.cpp
+#
+# LOCAL_SHARED_LIBRARIES := \
+# 	libsurfaceflinger \
+# 	libcutils \
+# 	liblog \
+# 	libbinder \
+# 	libutils \
+# 	libdl
+#
+# LOCAL_WHOLE_STATIC_LIBRARIES := libsigchain
+#
+# LOCAL_MODULE:= surfaceflinger
+#
+# ifdef TARGET_32_BIT_SURFACEFLINGER
+# LOCAL_32_BIT_ONLY := true
+# endif
+#
+# include $(BUILD_EXECUTABLE)
 
 ###############################################################
 # uses jni which may not be available in PDK
