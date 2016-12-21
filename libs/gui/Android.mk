@@ -1,6 +1,8 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
+LOCAL_CFLAGS += -std=c++11
+
 LOCAL_SRC_FILES:= \
 	IGraphicBufferConsumer.cpp \
 	IConsumerListener.cpp \
